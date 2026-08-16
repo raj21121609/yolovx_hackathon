@@ -46,6 +46,10 @@ def run_live_recognition():
     current_state = "IDLE"
     result_info = None
     
+    import threading
+    ai_thread = None
+    ai_lock = threading.Lock()
+    
     frame_count = 0
     start_time = time.time()
     
@@ -62,10 +66,20 @@ def run_live_recognition():
             
             # AI Processing rate limiter
             if (now - last_process_time) >= process_interval:
-                start_ai = time.time()
-                current_state, result_info = recognizer.process_frame(frame)
-                ai_latency = time.time() - start_ai
-                last_process_time = now
+                if ai_thread is None or not ai_thread.is_alive():
+                    latest_frame = frame.copy()
+                    
+                    def process_worker(f):
+                        nonlocal current_state, result_info
+                        state, info = recognizer.process_frame(f)
+                        with ai_lock:
+                            current_state = state
+                            result_info = info
+                            
+                    ai_thread = threading.Thread(target=process_worker, args=(latest_frame,))
+                    ai_thread.daemon = True
+                    ai_thread.start()
+                    last_process_time = now
                 
                 # Calculate FPS
                 elapsed = now - start_time

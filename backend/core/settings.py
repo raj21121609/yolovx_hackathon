@@ -94,3 +94,6 @@ REST_FRAMEWORK = {
 }
 
 CORS_ALLOWED_ORIGINS = [origin.strip() for origin in os.environ.get('CORS_ALLOWED_ORIGINS', 'http://localhost:5173').split(',') if origin.strip()]
+
+# Analytics Settings
+LOW_ATTENDANCE_THRESHOLD = 75.0
