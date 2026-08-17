@@ -1,7 +1,7 @@
 import { useContext } from 'react';
 import { Outlet, Link, useNavigate, useLocation } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { LayoutDashboard, Users, Calendar, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, Calendar, LogOut, BarChart2 } from 'lucide-react';
 
 const Sidebar = () => {
   const { logout } = useContext(AuthContext);
@@ -33,7 +33,7 @@ const Sidebar = () => {
             }`}
           >
             {item.icon}
-            <span>{item.name}</span>
+            <span>{item.label}</span>
           </Link>
         ))}
       </nav>
