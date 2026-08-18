@@ -94,8 +94,13 @@ const ActiveSession = () => {
             <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
               <Camera size={20} /> Live Camera
             </h2>
-            <span className={`px-3 py-1 rounded-full text-xs font-bold ${session.status === 'ACTIVE' ? 'bg-red-100 text-red-600 animate-pulse' : 'bg-gray-100 text-gray-600'}`}>
-              {session.status === 'ACTIVE' ? '● LIVE' : 'OFFLINE'}
+            <span className={`px-3 py-1 rounded-full text-xs font-bold ${
+              session.status !== 'ACTIVE' ? 'bg-gray-100 text-gray-600' :
+              status.state === 'CAMERA_ERROR' ? 'bg-red-100 text-red-600' :
+              'bg-red-100 text-red-600 animate-pulse'
+            }`}>
+              {session.status !== 'ACTIVE' ? 'OFFLINE' : 
+               status.state === 'CAMERA_ERROR' ? '🔴 DISCONNECTED' : '● LIVE'}
             </span>
           </div>
           <div className="bg-gray-900 aspect-video relative flex items-center justify-center">

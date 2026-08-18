@@ -144,10 +144,15 @@ class RecognitionManager:
                     
                 ret, frame = camera.read_frame()
                 if not ret or frame is None:
+                    with self.state_lock:
+                        self.latest_state = "CAMERA_ERROR"
+                        self.latest_frame = None
                     time.sleep(0.05)
                     continue
                     
                 with self.state_lock:
+                    if self.latest_state == "CAMERA_ERROR":
+                        self.latest_state = "SCANNING"
                     self.latest_frame = frame.copy()
                         
         except Exception as e:
