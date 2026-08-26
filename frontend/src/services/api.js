@@ -15,13 +15,37 @@ api.interceptors.request.use((config) => {
 api.interceptors.response.use(
   (response) => response,
   async (error) => {
-    // Optionally handle token refresh here later.
-    // For MVP, just redirect to login on 401
-    if (error.response && error.response.status === 401) {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      if (window.location.pathname !== '/login') {
-        window.location.href = '/login';
+    const originalRequest = error.config;
+
+    if (error.response && error.response.status === 401 && !originalRequest._retry) {
+      originalRequest._retry = true;
+      const refreshToken = localStorage.getItem('refresh_token');
+
+      if (refreshToken && !originalRequest.url.includes('/auth/refresh')) {
+        try {
+          const response = await axios.post('http://localhost:8000/api/auth/refresh/', {
+            refresh: refreshToken,
+          });
+
+          const { access } = response.data;
+          localStorage.setItem('access_token', access);
+          
+          originalRequest.headers.Authorization = `Bearer ${access}`;
+          return api(originalRequest);
+        } catch (refreshError) {
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+          if (window.location.pathname !== '/login') {
+            window.location.href = '/login';
+          }
+          return Promise.reject(refreshError);
+        }
+      } else {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        if (window.location.pathname !== '/login') {
+          window.location.href = '/login';
+        }
       }
     }
     return Promise.reject(error);
