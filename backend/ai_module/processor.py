@@ -112,16 +112,17 @@ class RecognitionManager:
                                 self.latest_state = state
                                 self.latest_result_info = result_info
                             
-                            if state == "VERIFIED" and result_info:
-                                student_id = result_info['student_id']
-                                distance = result_info['distance']
-                                status_str, msg = AttendanceService.record_verified_student(
-                                    session=session,
-                                    student_id=student_id,
-                                    distance=distance,
-                                    verified_at=timezone.now()
-                                )
-                                print(f"Verification event processed: {status_str} - {msg}")
+                            if result_info and result_info.get("verified_events"):
+                                for event in result_info["verified_events"]:
+                                    student_id = event['student_id']
+                                    distance = event['distance']
+                                    status_str, msg = AttendanceService.record_verified_student(
+                                        session=session,
+                                        student_id=student_id,
+                                        distance=distance,
+                                        verified_at=timezone.now()
+                                    )
+                                    print(f"Verification event processed for {student_id}: {status_str} - {msg}")
                         except Exception as e:
                             print(f"AI Worker error: {e}")
                 time.sleep(0.05)

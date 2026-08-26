@@ -1,5 +1,6 @@
 import time
 import numpy as np
+import cv2
 from scipy.spatial.distance import cosine
 from deepface import DeepFace
 
@@ -8,18 +9,20 @@ from .config import (
     MIN_MATCHING_FRAMES, MAX_VERIFICATION_TIME, VERIFICATION_COOLDOWN,
     MIN_FACE_SIZE, MIN_BLUR_THRESHOLD
 )
-import cv2
 
 class FaceRecognizer:
     def __init__(self):
         self.registered_students = []
-        self.state = "IDLE"
-        self.current_candidate = None
-        self.match_count = 0
-        self.verification_start_time = 0
-        self.last_verified_student_id = None
-        self.last_verified_time = 0
-        self.last_distance = None
+        
+        # State tracking per candidate
+        # student_id -> {'name': str, 'match_count': int, 'verification_start_time': float, 'last_distance': float}
+        self.active_candidates = {}
+        
+        # student_id -> float (time verified)
+        self.recently_verified = {}
+        
+        # Overall state of the system for UI
+        self.overall_state = "IDLE"
 
     def load_students(self, students):
         """
@@ -34,13 +37,13 @@ class FaceRecognizer:
                     'name': s['name'],
                     'embedding': np.array(s['embedding'])
                 })
-        self.state = "SCANNING"
+        self.overall_state = "SCANNING"
+        self.active_candidates = {}
+        self.recently_verified = {}
 
     def reset_verification(self):
-        self.current_candidate = None
-        self.match_count = 0
-        self.verification_start_time = 0
-        self.last_distance = None
+        # We keep this for API compatibility, but usually it's per-candidate now.
+        self.active_candidates = {}
 
     def _check_quality(self, frame):
         # Blur check
@@ -52,136 +55,173 @@ class FaceRecognizer:
 
     def process_frame(self, frame):
         """
-        Main state machine logic per frame.
-        Returns (state, result_dict)
+        Detects and tracks multiple faces concurrently.
+        Returns (state, result_info) where result_info is a dictionary containing
+        details about who is verifying, who is verified, and how many unknown faces.
         """
-        if self.state == "IDLE":
-            return self.state, None
+        if self.overall_state == "IDLE":
+            return self.overall_state, None
 
-        # 1. Cooldown Check
-        if self.last_verified_student_id:
-            time_since_verify = time.time() - self.last_verified_time
-            if time_since_verify < VERIFICATION_COOLDOWN:
-                return "VERIFIED", {
-                    "student_id": self.last_verified_student_id,
-                    "student_name": self.current_candidate['name'] if self.current_candidate else "Unknown",
-                    "distance": self.last_distance,
-                    "state": "COOLDOWN",
-                    "cooldown_remaining": VERIFICATION_COOLDOWN - time_since_verify
-                }
-            else:
-                self.last_verified_student_id = None
-                self.reset_verification()
-                self.state = "SCANNING"
+        now = time.time()
 
-        # Timeout Check
-        if self.current_candidate:
-            if time.time() - self.verification_start_time > MAX_VERIFICATION_TIME:
-                self.reset_verification()
-                self.state = "SCANNING"
+        # 1. Cleanup expired candidates
+        expired = [sid for sid, data in self.active_candidates.items() 
+                   if now - data['verification_start_time'] > MAX_VERIFICATION_TIME]
+        for sid in expired:
+            del self.active_candidates[sid]
+            
+        # Cleanup expired cooldowns
+        expired_cooldowns = [sid for sid, t in self.recently_verified.items() 
+                             if now - t > VERIFICATION_COOLDOWN]
+        for sid in expired_cooldowns:
+            del self.recently_verified[sid]
 
-        # 2. Extract Faces using DeepFace to get count and size
+        # Resize frame if it's too large to speed up DeepFace (e.g. IP Webcams are often 1080p)
+        process_frame = frame
+        scale_factor = 1.0
+        max_width = 640
+        if frame.shape[1] > max_width:
+            scale_factor = max_width / float(frame.shape[1])
+            new_height = int(frame.shape[0] * scale_factor)
+            process_frame = cv2.resize(frame, (max_width, new_height))
+            
+        # 2. Extract Faces using DeepFace
         try:
-            # We enforce detection to get the exact face bounding boxes
-            # We don't align yet, just detect to count.
-            # wait, represent does detection AND embedding. We can just use represent to get both if there's only 1 face.
-            # But we want to fail fast if there are multiple faces without embedding them all.
-            # However, DeepFace.represent returns a list of objects per face.
-            # So if we call represent, we get the count of faces automatically.
-            # Let's call represent directly to save double-processing.
             results = DeepFace.represent(
-                img_path=frame,
+                img_path=process_frame,
                 model_name=MODEL_NAME,
                 detector_backend=DETECTOR_BACKEND,
                 enforce_detection=True
             )
         except ValueError:
             # No face detected
-            self.reset_verification()
-            self.state = "SCANNING"
-            return self.state, None
+            self.overall_state = "SCANNING"
+            return self.overall_state, self._build_result_info()
         except Exception as e:
-            return "CAMERA_ERROR", str(e)
+            self.overall_state = "CAMERA_ERROR"
+            return self.overall_state, {"error": str(e)}
 
         num_faces = len(results)
         
         if num_faces == 0:
-            self.reset_verification()
-            self.state = "SCANNING"
-            return self.state, None
-            
-        if num_faces > 1:
-            self.reset_verification()
-            self.state = "MULTIPLE_FACES"
-            return self.state, None
+            self.overall_state = "SCANNING"
+            return self.overall_state, self._build_result_info()
 
-        self.state = "FACE_DETECTED"
-
-        # Single face detected.
-        face_info = results[0]
-        w = face_info['facial_area']['w']
-        h = face_info['facial_area']['h']
-
-        if w < MIN_FACE_SIZE[0] or h < MIN_FACE_SIZE[1]:
-            self.reset_verification()
-            self.state = "LOW_QUALITY"
-            return self.state, "Face too small"
-
-        # Check blur
+        # Check blur once for the frame
         q_ok, _ = self._check_quality(frame)
         if not q_ok:
-            self.reset_verification()
-            self.state = "LOW_QUALITY"
-            return self.state, "Blurry"
+            self.overall_state = "LOW_QUALITY"
+            return self.overall_state, self._build_result_info(error="Frame too blurry")
 
-        self.state = "RECOGNIZING"
-        target_embedding = np.array(face_info["embedding"])
+        self.overall_state = "RECOGNIZING"
+        unknown_count = 0
+        
+        # Track which IDs we saw in this frame to handle multiple faces matching same student
+        seen_student_ids = set()
+        
+        # Process each face
+        for face_info in results:
+            w = face_info['facial_area']['w']
+            h = face_info['facial_area']['h']
+            # Removed size skip logic to ensure IP webcam faces are not filtered out
 
-        # Matching
-        best_match = None
-        min_distance = float('inf')
-
-        for student in self.registered_students:
-            dist = cosine(target_embedding, student['embedding'])
-            if dist < min_distance:
-                min_distance = dist
-                best_match = student
-
-        if best_match and min_distance <= DISTANCE_THRESHOLD:
-            self.last_distance = min_distance
+            target_embedding = np.array(face_info["embedding"])
             
-            # Multi-frame verify
-            if self.current_candidate and self.current_candidate['id'] == best_match['id']:
-                self.match_count += 1
-                self.state = "MULTI_FRAME_VERIFY"
-            else:
-                self.current_candidate = best_match
-                self.match_count = 1
-                self.verification_start_time = time.time()
-                self.state = "MULTI_FRAME_VERIFY"
+            # Find best match
+            best_match = None
+            min_distance = float('inf')
 
-            if self.match_count >= MIN_MATCHING_FRAMES:
-                self.state = "VERIFIED"
-                self.last_verified_student_id = self.current_candidate['id']
-                self.last_verified_time = time.time()
+            for student in self.registered_students:
+                dist = cosine(target_embedding, student['embedding'])
+                if dist < min_distance:
+                    min_distance = dist
+                    best_match = student
+                    
+            print(f"DEBUG: Face size {w}x{h}. Best match: {best_match['name'] if best_match else 'None'} dist: {min_distance}", flush=True)
+
+            if best_match and min_distance <= DISTANCE_THRESHOLD:
+                print(f"DEBUG: Matched {best_match['name']} with distance {min_distance}", flush=True)
+                sid = best_match['id']
                 
-                result_data = {
-                    "student_id": self.current_candidate['id'],
-                    "student_name": self.current_candidate['name'],
-                    "distance": float(min_distance),
-                    "state": "VERIFIED",
-                    "timestamp": time.time()
-                }
-                return self.state, result_data
+                # Identity collision in same frame: Ignore the second one
+                if sid in seen_student_ids:
+                    continue
+                seen_student_ids.add(sid)
+                
+                # If they are already in cooldown, ignore
+                if sid in self.recently_verified:
+                    continue
+                    
+                # Update candidate tracking
+                if sid in self.active_candidates:
+                    self.active_candidates[sid]['match_count'] += 1
+                    self.active_candidates[sid]['last_distance'] = float(min_distance)
+                else:
+                    self.active_candidates[sid] = {
+                        'name': best_match['name'],
+                        'match_count': 1,
+                        'verification_start_time': now,
+                        'last_distance': float(min_distance)
+                    }
             else:
-                result_data = {
-                    "student_name": self.current_candidate['name'],
-                    "distance": float(min_distance),
-                    "match_count": self.match_count,
-                    "required": MIN_MATCHING_FRAMES
-                }
-                return self.state, result_data
-        else:
-            self.reset_verification()
-            self.state = "UNKNOWN"
-            return self.state, {"distance": float(min_distance) if min_distance != float('inf') else None}
+                unknown_count += 1
+                
+        # 3. Check for verifications and emit VERIFIED events
+        verified_this_frame = []
+        to_verify = []
+        for sid, data in self.active_candidates.items():
+            if data['match_count'] >= MIN_MATCHING_FRAMES:
+                to_verify.append(sid)
+                verified_this_frame.append({
+                    "student_id": sid,
+                    "student_name": data['name'],
+                    "distance": data['last_distance'],
+                    "timestamp": now
+                })
+                
+        for sid in to_verify:
+            self.recently_verified[sid] = now
+            del self.active_candidates[sid]
+            
+        # If no one is being verified or recently verified, but there are unknown faces, signal UNKNOWN
+        if unknown_count > 0 and len(self.active_candidates) == 0 and len(verified_this_frame) == 0:
+            self.overall_state = "UNKNOWN"
+
+        return self.overall_state, self._build_result_info(
+            verified_events=verified_this_frame,
+            unknown_count=unknown_count
+        )
+
+    def _build_result_info(self, verified_events=None, unknown_count=0, error=None):
+        verifying = []
+        for sid, data in self.active_candidates.items():
+            verifying.append({
+                "student_id": sid,
+                "student_name": data['name'],
+                "match_count": data['match_count'],
+                "required": MIN_MATCHING_FRAMES,
+                "distance": data['last_distance']
+            })
+            
+        recently_verified_list = []
+        now = time.time()
+        for sid, t in self.recently_verified.items():
+            sname = "Unknown"
+            for s in self.registered_students:
+                if s['id'] == sid:
+                    sname = s['name']
+                    break
+            recently_verified_list.append({
+                "student_id": sid,
+                "student_name": sname,
+                "cooldown_remaining": max(0, VERIFICATION_COOLDOWN - (now - t))
+            })
+
+        return {
+            "state": self.overall_state,
+            "verifying": verifying,
+            "recently_verified": recently_verified_list,
+            "verified_events": verified_events or [],
+            "unknown_count": unknown_count,
+            "error": error
+        }

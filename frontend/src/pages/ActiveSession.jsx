@@ -37,7 +37,7 @@ const ActiveSession = () => {
         setStatus(stat);
         
         // Refresh attendance if verified recently
-        if (stat.state === 'VERIFIED') {
+        if (stat.info?.verified_events && stat.info.verified_events.length > 0) {
           const att = await sessionService.getAttendance(id);
           setAttendance(att);
         }
@@ -62,16 +62,10 @@ const ActiveSession = () => {
 
   const getStatusMessage = (state) => {
     switch (state) {
-      case 'SCANNING': return "Please look at the camera";
-      case 'FACE_DETECTED': return "Face detected";
-      case 'QUALITY_CHECK': return "Checking image quality";
-      case 'RECOGNIZING': return "Recognizing...";
-      case 'MULTI_FRAME_VERIFY': return "Verifying identity...";
-      case 'VERIFIED': return "Attendance verified";
-      case 'ALREADY_MARKED': return "Attendance already recorded";
-      case 'UNKNOWN': return "Student not recognized";
-      case 'LOW_QUALITY': return "Please improve lighting or move closer";
-      case 'MULTIPLE_FACES': return "Please ensure only one student is visible";
+      case 'SCANNING': return "Scanning classroom...";
+      case 'RECOGNIZING': return "Recognizing faces...";
+      case 'UNKNOWN': return "Unknown face(s) detected";
+      case 'LOW_QUALITY': return "Lighting/blur issues detected";
       case 'CAMERA_ERROR': return "Camera unavailable";
       default: return "Initializing AI Engine...";
     }
@@ -133,19 +127,34 @@ const ActiveSession = () => {
                 {status.state === 'VERIFIED' ? <CheckCircle size={24} /> : <AlertCircle size={24} />}
               </div>
               <div className="flex-1">
-                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">Status: {status.state}</p>
+                <p className="text-sm font-semibold text-gray-500 uppercase tracking-wider">State: {status.state}</p>
                 <p className="text-xl font-medium text-gray-900">{getStatusMessage(status.state)}</p>
                 
-                {status.state === 'MULTI_FRAME_VERIFY' && status.info && (
-                  <div className="mt-2 text-sm text-yellow-700">
-                    Verification {status.info.match_count} / {status.info.required} (Distance: {status.info.distance.toFixed(3)})
+                {status.info?.unknown_count > 0 && (
+                  <div className="mt-2 text-sm text-red-600 font-medium">
+                    {status.info.unknown_count} unknown/unregistered face(s) detected
+                  </div>
+                )}
+
+                {status.info?.verifying && status.info.verifying.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    {status.info.verifying.map(v => (
+                      <div key={v.student_id} className="text-sm text-yellow-700 bg-yellow-50 p-2 rounded border border-yellow-100 flex justify-between">
+                        <span>Verifying <strong>{v.student_name}</strong>...</span>
+                        <span>{v.match_count} / {v.required}</span>
+                      </div>
+                    ))}
                   </div>
                 )}
                 
-                {status.state === 'VERIFIED' && status.info && (
-                  <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg text-green-800">
-                    <p className="font-bold text-lg">✓ {status.info.student_name}</p>
-                    <p className="text-sm opacity-80">Recognition distance: {status.info.distance.toFixed(3)}</p>
+                {status.info?.recently_verified && status.info.recently_verified.length > 0 && (
+                  <div className="mt-3 space-y-2">
+                    {status.info.recently_verified.map(v => (
+                      <div key={v.student_id} className="p-3 bg-green-50 border border-green-200 rounded-lg text-green-800 flex justify-between items-center">
+                        <span className="font-bold text-lg flex items-center gap-2"><CheckCircle size={18}/> {v.student_name}</span>
+                        <span className="text-xs opacity-70">Cooldown: {v.cooldown_remaining.toFixed(1)}s</span>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -206,7 +215,7 @@ const ActiveSession = () => {
                   </div>
                   <div>
                     <p className="text-sm font-medium text-gray-900">{record.student_name}</p>
-                    <p className="text-xs text-gray-500">{new Date(record.marked_at).toLocaleTimeString()}</p>
+                    <p className="text-xs text-gray-500">{new Date(record.created_at).toLocaleTimeString()}</p>
                   </div>
                 </div>
                 <span className={`text-xs font-bold px-2 py-1 rounded ${

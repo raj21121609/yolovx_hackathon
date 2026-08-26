@@ -95,37 +95,24 @@ def run_live_recognition():
                         cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2)
                         
             if result_info:
-                if current_state == "VERIFIED":
-                    cv2.putText(display_frame, f"VERIFIED: {result_info.get('student_name', 'Unknown')}", (20, 80), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-                    cv2.putText(display_frame, f"Dist: {result_info.get('distance', 0.0):.3f}", (20, 120), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-                                
-                elif current_state == "MULTI_FRAME_VERIFY":
-                    name = result_info.get('student_name', 'Unknown')
-                    match_count = result_info.get('match_count', 0)
-                    required = result_info.get('required', 3)
-                    dist = result_info.get('distance', 0.0)
-                    cv2.putText(display_frame, f"VERIFYING: {name}", (20, 80), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 165, 0), 2)
-                    cv2.putText(display_frame, f"Verification: {match_count} / {required}", (20, 120), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 165, 0), 2)
-                    cv2.putText(display_frame, f"Dist: {dist:.3f}", (20, 160), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 165, 0), 2)
-                                
-                elif current_state == "COOLDOWN":
-                    rem = result_info.get('cooldown_remaining', 0)
-                    cv2.putText(display_frame, f"COOLDOWN ({rem:.1f}s)", (20, 80), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 1, (255, 255, 0), 2)
-                                
-                elif current_state == "UNKNOWN":
-                    dist = result_info.get('distance')
-                    cv2.putText(display_frame, "UNKNOWN", (20, 80), 
-                                cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 255), 2)
-                    if dist is not None:
-                        cv2.putText(display_frame, f"Dist: {dist:.3f}", (20, 120), 
-                                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
-                                    
+                y_offset = 80
+                if result_info.get('verifying'):
+                    for v in result_info['verifying']:
+                        cv2.putText(display_frame, f"VERIFYING: {v['student_name']} {v['match_count']}/{v['required']}", (20, y_offset), 
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (255, 165, 0), 2)
+                        y_offset += 40
+                        
+                if result_info.get('recently_verified'):
+                    for v in result_info['recently_verified']:
+                        cv2.putText(display_frame, f"VERIFIED: {v['student_name']} (CD: {v['cooldown_remaining']:.1f}s)", (20, y_offset), 
+                                    cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
+                        y_offset += 40
+                        
+                if result_info.get('unknown_count', 0) > 0:
+                    cv2.putText(display_frame, f"UNKNOWN: {result_info['unknown_count']} face(s)", (20, y_offset), 
+                                cv2.FONT_HERSHEY_SIMPLEX, 0.8, (0, 0, 255), 2)
+                    y_offset += 40
+
             cv2.imshow("VisionAttend Live Feed", display_frame)
             
             if cv2.waitKey(1) & 0xFF == ord('q'):
