@@ -83,11 +83,11 @@ const Students = () => {
 
   return (
     <div className="p-8 max-w-7xl mx-auto">
-      <div className="flex justify-between items-center mb-8">
-        <h1 className="text-3xl font-bold text-gray-900">Students</h1>
+      <div className="flex justify-between items-center mb-8 border-b border-gray-200 pb-2">
+        <h1 className="text-3xl font-extrabold text-sj-primary tracking-tight">Students Directory</h1>
         <button
           onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-medium hover:bg-indigo-700"
+          className="flex items-center gap-2 px-4 py-2 bg-sj-primary text-white rounded-lg text-sm font-medium hover:bg-sj-primary/90 shadow-sm transition-all"
         >
           <UserPlus size={18} /> Add Student
         </button>
@@ -115,7 +115,7 @@ const Students = () => {
                   </div>
                   <div className="flex justify-end space-x-3">
                     <button type="button" onClick={resetModal} className="px-4 py-2 text-gray-600 hover:bg-gray-100 rounded-lg">Cancel</button>
-                    <button type="submit" className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700">Next: Register Face</button>
+                    <button type="submit" className="px-4 py-2 bg-sj-primary text-white rounded-lg hover:bg-sj-primary/90 shadow-sm transition-all">Next: Register Face</button>
                   </div>
                 </form>
               </>
@@ -141,7 +141,7 @@ const Students = () => {
                   <button 
                     onClick={handleRegisterFace}
                     disabled={selectedFiles.length !== 5}
-                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg hover:bg-indigo-700 disabled:opacity-50"
+                    className="px-4 py-2 bg-sj-primary text-white rounded-lg hover:bg-sj-primary/90 shadow-sm disabled:opacity-50 transition-all"
                   >
                     Upload & Register
                   </button>
@@ -151,7 +151,7 @@ const Students = () => {
 
             {step === 3 && (
               <div className="text-center py-8">
-                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+                <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-sj-primary mx-auto mb-4"></div>
                 <h2 className="text-xl font-bold text-gray-900">Registering face...</h2>
                 <p className="text-gray-500 mt-2">Processing 5 images and extracting embeddings.</p>
               </div>
@@ -182,15 +182,15 @@ const Students = () => {
         </div>
       )}
 
-      <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
+      <div className="bg-white rounded-xl shadow-md border border-gray-200/60 overflow-hidden">
         <table className="min-w-full divide-y divide-gray-200">
-          <thead className="bg-gray-50">
+          <thead className="bg-gray-50 border-b border-gray-200">
             <tr>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Name</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Roll Number</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Department</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Registered</th>
-              <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase">Action</th>
+              <th className="px-6 py-4 text-left text-xs font-bold text-sj-primary uppercase tracking-wider">Name</th>
+              <th className="px-6 py-4 text-left text-xs font-bold text-sj-primary uppercase tracking-wider">Roll Number</th>
+              <th className="px-6 py-4 text-left text-xs font-bold text-sj-primary uppercase tracking-wider">Department</th>
+              <th className="px-6 py-4 text-left text-xs font-bold text-sj-primary uppercase tracking-wider">Registered</th>
+              <th className="px-6 py-4 text-left text-xs font-bold text-sj-primary uppercase tracking-wider">Action</th>
             </tr>
           </thead>
           <tbody className="bg-white divide-y divide-gray-200">
@@ -198,7 +198,7 @@ const Students = () => {
                students.map(student => (
                 <tr key={student.id}>
                   <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm">
+                    <div className="w-8 h-8 rounded-full bg-blue-50 text-sj-primary flex items-center justify-center font-bold text-sm border border-blue-100">
                       {student.name.charAt(0)}
                     </div>
                     {student.name}
@@ -213,7 +213,7 @@ const Students = () => {
                     )}
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-sm">
-                    <a href={`/students/${student.id}`} className="text-indigo-600 hover:text-indigo-900 font-medium">View</a>
+                    <a href={`/students/${student.id}`} className="text-sj-primary hover:text-sj-primary/80 font-bold transition-colors">View</a>
                   </td>
                 </tr>
               ))}

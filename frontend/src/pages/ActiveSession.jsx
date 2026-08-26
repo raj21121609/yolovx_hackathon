@@ -83,15 +83,15 @@ const ActiveSession = () => {
     <div className="p-8 max-w-7xl mx-auto flex flex-col md:flex-row gap-8">
       {/* LEFT: Camera Viewer */}
       <div className="md:w-2/3 flex flex-col gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100 flex justify-between items-center">
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <Camera size={20} /> Live Camera
+        <div className="bg-white rounded-xl shadow-md border border-gray-200/60 overflow-hidden">
+          <div className="px-6 py-4 bg-sj-primary border-b border-sj-primary flex justify-between items-center text-white">
+            <h2 className="text-lg font-bold flex items-center gap-2 tracking-wide">
+              <Camera size={20} /> LIVE CLASSROOM
             </h2>
             <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-              session.status !== 'ACTIVE' ? 'bg-gray-100 text-gray-600' :
-              status.state === 'CAMERA_ERROR' ? 'bg-red-100 text-red-600' :
-              'bg-red-100 text-red-600 animate-pulse'
+              session.status !== 'ACTIVE' ? 'bg-white/20 text-white' :
+              status.state === 'CAMERA_ERROR' ? 'bg-red-500 text-white' :
+              'bg-sj-secondary text-white animate-pulse'
             }`}>
               {session.status !== 'ACTIVE' ? 'OFFLINE' : 
                status.state === 'CAMERA_ERROR' ? '🔴 DISCONNECTED' : '● LIVE'}
@@ -165,9 +165,9 @@ const ActiveSession = () => {
 
       {/* RIGHT: Attendance Summary */}
       <div className="md:w-1/3 flex flex-col gap-6">
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 p-6">
-          <h2 className="text-2xl font-bold text-gray-900 mb-1">{session.subject}</h2>
-          <p className="text-gray-500 mb-6">{new Date(session.created_at).toLocaleDateString()}</p>
+        <div className="bg-white rounded-xl shadow-md border border-gray-200/60 p-6">
+          <h2 className="text-2xl font-extrabold text-sj-primary mb-1">{session.subject}</h2>
+          <p className="text-gray-500 font-medium mb-6">{new Date(session.created_at).toLocaleDateString()}</p>
           
           <div className="grid grid-cols-2 gap-4 mb-6">
             <div className="bg-green-50 p-4 rounded-lg text-center border border-green-100">
@@ -183,7 +183,7 @@ const ActiveSession = () => {
           {session.status === 'ACTIVE' ? (
             <button 
               onClick={handleEnd}
-              className="w-full py-3 bg-red-600 text-white rounded-lg font-bold hover:bg-red-700 transition-colors"
+              className="w-full py-3 bg-sj-secondary text-white rounded-lg font-bold hover:bg-red-700 shadow-sm transition-all tracking-wider"
             >
               END SESSION
             </button>
@@ -194,7 +194,7 @@ const ActiveSession = () => {
               </div>
               <button
                 onClick={() => reportService.exportSessionCSV(id)}
-                className="w-full py-2 border border-indigo-600 text-indigo-600 rounded-lg font-bold hover:bg-indigo-50 transition-colors flex items-center justify-center gap-2"
+                className="w-full py-2 border-2 border-sj-primary text-sj-primary rounded-lg font-bold hover:bg-blue-50 transition-colors flex items-center justify-center gap-2"
               >
                 Download CSV Report
               </button>
@@ -202,15 +202,15 @@ const ActiveSession = () => {
           )}
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-gray-100 flex-1 flex flex-col overflow-hidden">
-          <div className="px-6 py-4 border-b border-gray-100">
-            <h3 className="font-semibold text-gray-900">Recent Attendance</h3>
+        <div className="bg-white rounded-xl shadow-md border border-gray-200/60 flex-1 flex flex-col overflow-hidden">
+          <div className="px-6 py-4 border-b border-gray-200">
+            <h3 className="font-bold text-sj-primary uppercase tracking-wider text-sm">Recent Attendance</h3>
           </div>
           <div className="flex-1 overflow-y-auto p-4 space-y-3">
             {attendance.slice().reverse().map(record => (
-              <div key={record.id} className="flex justify-between items-center p-3 hover:bg-gray-50 rounded-lg border border-gray-100">
+              <div key={record.id} className="flex justify-between items-center p-3 hover:bg-gray-50 rounded-lg border border-gray-100 transition-colors">
                 <div className="flex items-center gap-3">
-                  <div className="w-8 h-8 rounded-full bg-indigo-100 text-indigo-700 flex items-center justify-center font-bold text-sm">
+                  <div className="w-8 h-8 rounded-full bg-blue-50 text-sj-primary border border-blue-100 flex items-center justify-center font-bold text-sm">
                     {record.student_name.charAt(0)}
                   </div>
                   <div>

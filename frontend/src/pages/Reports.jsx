@@ -34,8 +34,8 @@ function Reports() {
 
   return (
     <div className="p-8 max-w-7xl mx-auto space-y-8">
-      <div className="flex justify-between items-center">
-        <h1 className="text-3xl font-bold text-gray-900">Reports & Analytics</h1>
+      <div className="flex justify-between items-center border-b border-gray-200 pb-2">
+        <h1 className="text-3xl font-extrabold text-sj-primary tracking-tight">Reports & Analytics</h1>
       </div>
 
       {/* Tabs */}
@@ -45,9 +45,9 @@ function Reports() {
             onClick={() => setActiveTab('history')}
             className={`${
               activeTab === 'history'
-                ? 'border-indigo-500 text-indigo-600'
+                ? 'border-sj-primary text-sj-primary'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
+            } whitespace-nowrap py-4 px-1 border-b-2 font-bold text-sm flex items-center transition-colors`}
           >
             <FileText size={18} className="mr-2" />
             Attendance History
@@ -56,9 +56,9 @@ function Reports() {
             onClick={() => setActiveTab('low-attendance')}
             className={`${
               activeTab === 'low-attendance'
-                ? 'border-indigo-500 text-indigo-600'
+                ? 'border-sj-primary text-sj-primary'
                 : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
-            } whitespace-nowrap py-4 px-1 border-b-2 font-medium text-sm flex items-center`}
+            } whitespace-nowrap py-4 px-1 border-b-2 font-bold text-sm flex items-center transition-colors`}
           >
             <AlertTriangle size={18} className="mr-2" />
             Low Attendance Warning
@@ -105,12 +105,12 @@ function Reports() {
           </div>
           
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-white">
+            <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Subject</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Status</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-sj-primary uppercase tracking-wider">Student</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-sj-primary uppercase tracking-wider">Subject</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-sj-primary uppercase tracking-wider">Date</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-sj-primary uppercase tracking-wider">Status</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
@@ -157,11 +157,11 @@ function Reports() {
             <p className="text-sm text-red-600 mt-1">These students may require intervention.</p>
           </div>
           <table className="min-w-full divide-y divide-gray-200">
-            <thead className="bg-white">
+            <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Student Name</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Roll Number</th>
-                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Attendance %</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-sj-primary uppercase tracking-wider">Student Name</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-sj-primary uppercase tracking-wider">Roll Number</th>
+                <th className="px-6 py-4 text-left text-xs font-bold text-sj-primary uppercase tracking-wider">Attendance %</th>
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
